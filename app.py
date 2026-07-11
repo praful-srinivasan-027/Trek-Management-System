@@ -3,7 +3,8 @@ from flask_login import login_user, logout_user, current_user, login_required
 from extentions import db, login_manager
 # import models 
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import User
+from datetime import datetime
+from models import User, Trek
 
 app = Flask(__name__)
 
@@ -37,6 +38,45 @@ with app.app_context():
 def home():
     return f"Welcome {current_user.name}! Role: {current_user.role} "
 
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    if current_user.role=="admin":
+        return redirect(url_for("admin_dashboard"))
+    if current_user.role=="staff":
+        return redirect(url_for("staff_dashboard"))
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/admin/dashboard")
+@login_required
+def admin_dashboard():
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    treks = Trek.query.all()
+
+    return render_template(
+        "admin_dashboard.html",
+        treks=treks
+    )
+
+@app.route("/staff/dashboard")
+@login_required
+def staff_dashboard():
+    if current_user.role != "staff":
+        return "Access denied", 403
+
+    return f"Staff Dashboard - Welcome {current_user.name}"
+
+
+@app.route("/user/dashboard")
+@login_required
+def user_dashboard():
+    if current_user.role != "user":
+        return "Access denied", 403
+
+    return f"User Dashboard - Welcome {current_user.name}"
+
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method=="POST":
@@ -60,7 +100,7 @@ def register():
 
         db.session.add(new_user)
         db.session.commit()
-        return redirect(url_for("home"))
+        return redirect(url_for("dashboard"))
     return render_template("register.html")
 
 @app.route("/login", methods=["GET","POST"])
@@ -78,7 +118,7 @@ def login():
         if user.role=="staff" and not user.is_approved:
             return "Your Staff Account is awaiting Admin Approval"
         login_user(user)
-        return redirect(url_for("home"))
+        return redirect(url_for("dashboard"))
     return render_template("login.html")
 
 @app.route("/logout")
@@ -86,6 +126,84 @@ def login():
 def logout():
     logout_user
     return redirect(url_for("login"))
+
+@app.route("/admin/treks/create", methods=["GET", "POST"])
+@login_required
+def create_trek():
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        location = request.form.get("location")
+        difficulty = request.form.get("difficulty")
+        duration = int(request.form.get("duration"))
+        available_slots = int(request.form.get("available_slots"))
+        status = request.form.get("status")
+        start_date = datetime.strptime(
+            request.form.get("start_date"), "%Y-%m-%d"
+        ).date()
+        end_date = datetime.strptime(
+            request.form.get("end_date"), "%Y-%m-%d"
+        ).date()
+
+        trek = Trek(
+            name=name,
+            location=location,
+            difficulty=difficulty,
+            duration=duration,
+            available_slots=available_slots,
+            status=status,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        db.session.add(trek)
+        db.session.commit()
+
+        return redirect(url_for("admin_dashboard"))
+
+    return render_template("create_trek.html")
+
+@app.route("/admin/treks/<int:trek_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_trek(trek_id):
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    trek = db.get_or_404(Trek, trek_id)
+
+    if request.method == "POST":
+        trek.name = request.form.get("name")
+        trek.location = request.form.get("location")
+        trek.difficulty = request.form.get("difficulty")
+        trek.duration = int(request.form.get("duration"))
+        trek.available_slots = int(request.form.get("available_slots"))
+        trek.status = request.form.get("status")
+        trek.start_date = datetime.strptime(
+            request.form.get("start_date"), "%Y-%m-%d"
+        ).date()
+        trek.end_date = datetime.strptime(
+            request.form.get("end_date"), "%Y-%m-%d"
+        ).date()
+
+        db.session.commit()
+        return redirect(url_for("admin_dashboard"))
+
+    return render_template("edit_trek.html", trek=trek)
+
+@app.route("/admin/treks/<int:trek_id>/delete", methods=["POST"])
+@login_required
+def delete_trek(trek_id):
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    trek = db.get_or_404(Trek, trek_id)
+
+    db.session.delete(trek)
+    db.session.commit()
+
+    return redirect(url_for("admin_dashboard"))
 
 if __name__ == "__main__":
     app.run(debug=True)

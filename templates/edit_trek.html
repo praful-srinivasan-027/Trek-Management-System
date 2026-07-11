@@ -1,0 +1,28 @@
+<h1>Edit Trek</h1>
+
+<form method="POST">
+    <input type="text" name="name" value="{{ trek.name }}" required>
+    <input type="text" name="location" value="{{ trek.location }}" required>
+
+    <select name="difficulty">
+        <option value="Easy" {% if trek.difficulty == "Easy" %}selected{% endif %}>Easy</option>
+        <option value="Moderate" {% if trek.difficulty == "Moderate" %}selected{% endif %}>Moderate</option>
+        <option value="Hard" {% if trek.difficulty == "Hard" %}selected{% endif %}>Hard</option>
+    </select>
+
+    <input type="number" name="duration" value="{{ trek.duration }}" min="1" required>
+    <input type="number" name="available_slots" value="{{ trek.available_slots }}" min="0" required>
+
+    <select name="status">
+        {% for status in ["Pending", "Approved", "Open", "Closed", "Completed"] %}
+            <option value="{{ status }}" {% if trek.status == status %}selected{% endif %}>
+                {{ status }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <input type="date" name="start_date" value="{{ trek.start_date }}" required>
+    <input type="date" name="end_date" value="{{ trek.end_date }}" required>
+
+    <button type="submit">Save Changes</button>
+</form>
