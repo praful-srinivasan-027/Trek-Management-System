@@ -277,19 +277,19 @@ def edit_trek(trek_id):
             request.form.get("end_date"), "%Y-%m-%d"
         ).date()
 
-        if end_date < start_date:
+        if trek.end_date < trek.start_date:
             return "End date cannot be before start date", 400
 
-        if duration <= 0:
+        if trek.duration <= 0:
             return "Duration must be greater than 0", 400
 
-        if available_slots < 0:
+        if trek.available_slots < 0:
             return "Available slots cannot be negative", 400
 
-        if difficulty not in ["Easy", "Moderate", "Hard"]:
+        if trek.difficulty not in ["Easy", "Moderate", "Hard"]:
             return "Invalid difficulty", 400
 
-        if status not in ["Pending", "Approved", "Open", "Closed", "Completed"]:
+        if trek.status not in ["Pending", "Approved", "Open", "Closed", "Completed"]:
             return "Invalid trek status", 400
 
         db.session.commit()
