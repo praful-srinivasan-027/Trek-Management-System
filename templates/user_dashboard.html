@@ -11,7 +11,8 @@
     <p>Welcome, {{ current_user.name }}</p>
 
     <a href="{{ url_for('logout') }}">Logout</a>
-
+    <a href="{{ url_for('edit_profile') }}">Edit Profile</a>
+    
     <hr>
 
         <form method="GET">
@@ -33,7 +34,7 @@
 
         <button type="submit">Search</button>
     </form>
-    
+
     <h2>Available Treks</h2>
 
     {% for trek in open_treks %}

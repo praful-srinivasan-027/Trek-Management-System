@@ -20,6 +20,13 @@
         <a href="{{ url_for('update_assigned_trek', trek_id=assignment.trek.id) }}">
             Update Trek
         </a>
+        <br>
+        <a href="{{ url_for(
+            'view_participants',
+            trek_id=assignment.trek.id
+        ) }}">
+            View Participants
+        </a>
         <hr>
     {% else %}
         <p>No treks have been assigned to you.</p>

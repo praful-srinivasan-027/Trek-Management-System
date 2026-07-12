@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import login_user, logout_user, current_user, login_required
 from extentions import db, login_manager
-# import models 
+# import models TODO: Verify if this is even used. 
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from models import User, Trek, TrekAssignment, Booking
@@ -53,7 +53,41 @@ def admin_dashboard():
     if current_user.role != "admin":
         return "Access denied", 403
 
-    treks = Trek.query.all()
+    search = request.args.get("search", "").strip()
+    users_query = User.query.filter_by(role="user")
+    staff_query = User.query.filter_by(role="staff")
+    treks_query = Trek.query
+
+    if search:
+        users_query = users_query.filter(
+            db.or_(
+                User.name.ilike(f"%{search}%"),
+                db.cast(User.id, db.String).like(f"%{search}%")
+            )
+        )
+
+        staff_query = staff_query.filter(
+            db.or_(
+                User.name.ilike(f"%{search}%"),
+                db.cast(User.id, db.String).like(f"%{search}%")
+            )
+        )
+
+        treks_query = treks_query.filter(
+            db.or_(
+                Trek.name.ilike(f"%{search}%"),
+                db.cast(Trek.id, db.String).like(f"%{search}%")
+            )
+        )
+
+    users = users_query.all()
+    staff_members = staff_query.all()
+    treks = treks_query.all()
+    all_bookings = Booking.query.all()
+    total_treks = Trek.query.count()
+    total_users = User.query.filter_by(role="user").count()
+    total_staff = User.query.filter_by(role="staff").count()
+    total_bookings = Booking.query.count()
     pending_staff = User.query.filter_by(
         role="staff",
         is_approved=False,
@@ -63,7 +97,14 @@ def admin_dashboard():
     return render_template(
         "admin_dashboard.html",
         treks=treks,
-        pending_staff=pending_staff
+        pending_staff=pending_staff,
+        users=users,
+        staff_members=staff_members,
+        all_bookings=all_bookings,
+        total_treks=total_treks,
+        total_users=total_users,
+        total_staff=total_staff,
+        total_bookings=total_bookings
     )
 
 @app.route("/staff/dashboard")
@@ -181,6 +222,21 @@ def create_trek():
             request.form.get("end_date"), "%Y-%m-%d"
         ).date()
 
+        if end_date < start_date:
+            return "End date cannot be before start date", 400
+
+        if duration <= 0:
+            return "Duration must be greater than 0", 400
+
+        if available_slots < 0:
+            return "Available slots cannot be negative", 400
+
+        if difficulty not in ["Easy", "Moderate", "Hard"]:
+            return "Invalid difficulty", 400
+
+        if status not in ["Pending", "Approved", "Open", "Closed", "Completed"]:
+            return "Invalid trek status", 400
+
         trek = Trek(
             name=name,
             location=location,
@@ -220,6 +276,21 @@ def edit_trek(trek_id):
         trek.end_date = datetime.strptime(
             request.form.get("end_date"), "%Y-%m-%d"
         ).date()
+
+        if end_date < start_date:
+            return "End date cannot be before start date", 400
+
+        if duration <= 0:
+            return "Duration must be greater than 0", 400
+
+        if available_slots < 0:
+            return "Available slots cannot be negative", 400
+
+        if difficulty not in ["Easy", "Moderate", "Hard"]:
+            return "Invalid difficulty", 400
+
+        if status not in ["Pending", "Approved", "Open", "Closed", "Completed"]:
+            return "Invalid trek status", 400
 
         db.session.commit()
         return redirect(url_for("admin_dashboard"))
@@ -319,6 +390,14 @@ def update_assigned_trek(trek_id):
     if request.method == "POST":
         trek.available_slots = int(request.form.get("available_slots"))
         trek.status = request.form.get("status")
+        if trek.status == "Completed":
+            active_bookings = Booking.query.filter_by(
+                trek_id=trek.id,
+                status="Booked"
+            ).all()
+
+            for booking in active_bookings:
+                booking.status = "Completed"
 
         db.session.commit()
 
@@ -383,6 +462,77 @@ def cancel_booking(booking_id):
     db.session.commit()
 
     return redirect(url_for("user_dashboard"))
+
+@app.route("/staff/treks/<int:trek_id>/participants")
+@login_required
+def view_participants(trek_id):
+    if current_user.role != "staff":
+        return "Access denied", 403
+
+    assignment = TrekAssignment.query.filter_by(
+        trek_id=trek_id,
+        staff_id=current_user.id
+    ).first()
+
+    if assignment is None:
+        return "You are not assigned to this trek", 403
+
+    trek = db.get_or_404(Trek, trek_id)
+
+    bookings = Booking.query.filter_by(
+        trek_id=trek_id,
+        status="Booked"
+    ).all()
+
+    return render_template(
+        "participants.html",
+        trek=trek,
+        bookings=bookings
+    )
+
+@app.route("/admin/users/<int:user_id>/toggle-blacklist", methods=["POST"])
+@login_required
+def toggle_blacklist(user_id):
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    user = db.get_or_404(User, user_id)
+
+    if user.role == "admin":
+        return "Admin cannot be blacklisted", 400
+
+    user.is_blacklisted = not user.is_blacklisted
+
+    db.session.commit()
+
+    return redirect(url_for("admin_dashboard"))
+
+@app.route("/user/profile", methods=["GET", "POST"])
+@login_required
+def edit_profile():
+    if current_user.role != "user":
+        return "Access denied", 403
+
+    if request.method == "POST":
+        name = request.form.get("name").strip()
+        email = request.form.get("email").strip()
+
+        existing_user = User.query.filter(
+            User.email == email,
+            User.id != current_user.id
+        ).first()
+
+        if existing_user:
+            return "Email is already in use", 400
+
+        current_user.name = name
+        current_user.email = email
+
+        db.session.commit()
+
+        return redirect(url_for("user_dashboard"))
+
+    return render_template("edit_profile.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

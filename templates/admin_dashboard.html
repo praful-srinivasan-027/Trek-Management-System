@@ -12,6 +12,93 @@
     <a href="{{ url_for('create_trek') }}">Create Trek</a>
     <a href="{{ url_for('logout') }}">Logout</a>
 
+    <h2>Statistics</h2>
+
+    <p>Total Treks: {{ total_treks }}</p>
+    <p>Total Users: {{ total_users }}</p>
+    <p>Total Staff: {{ total_staff }}</p>
+    <p>Total Bookings: {{ total_bookings }}</p>
+
+    <h2>Search</h2>
+
+    <form method="GET">
+        <input
+            type="text"
+            name="search"
+            placeholder="Search users, staff, or treks by name or ID"
+            value="{{ request.args.get('search', '') }}"
+        >
+        <button type="submit">Search</button>
+        <a href="{{ url_for('admin_dashboard') }}">Clear</a>
+    </form>
+    
+    <h2>Users</h2>
+    {% for user in users %}
+        <p>{{ user.id }} — {{ user.name }} — {{ user.email }}</p>
+        <form
+            method="POST"
+            action="{{ url_for('toggle_blacklist', user_id=user.id) }}"
+        >
+            <button type="submit">
+                {% if user.is_blacklisted %}
+                    Remove Blacklist
+                {% else %}
+                    Blacklist
+                {% endif %}
+            </button>
+        </form>
+    {% else %}
+        <p>No users found.</p>
+    {% endfor %}
+
+    <h2>Staff</h2>
+    {% for staff in staff_members %}
+        <p>
+            {{ staff.id }} — {{ staff.name }} — {{ staff.email }}
+            — Approved: {{ staff.is_approved }}
+        </p>
+        <form
+            method="POST"
+            action="{{ url_for('toggle_blacklist', user_id=staff.id) }}"
+        >
+            <button type="submit">
+                {% if staff.is_blacklisted %}
+                    Remove Blacklist
+                {% else %}
+                    Blacklist
+                {% endif %}
+            </button>
+        </form>
+    {% else %}
+        <p>No staff found.</p>
+    {% endfor %}
+
+    <h2>Pending Staff Approvals</h2>
+
+    {% for staff in pending_staff %}
+        <p>
+            {{ staff.name }} — {{ staff.email }}
+        </p>
+
+        <form method="POST"
+            action="{{ url_for('approve_staff', staff_id=staff.id) }}">
+            <button type="submit">Approve</button>
+        </form>
+    {% else %}
+        <p> No Pending Staff Approvals</p>
+    {% endfor %}
+
+    <h2>All Bookings</h2>
+    {% for booking in all_bookings %}
+        <p>
+            {{ booking.user.name }}
+            → {{ booking.trek.name }}
+            → {{ booking.status }}
+        </p>
+    {% else %}
+        <p>No bookings found.</p>
+    {% endfor %}
+
     <h2>All Treks</h2>
 
     {% for trek in treks %}
@@ -35,19 +122,5 @@
         <p>No treks have been created yet.</p>
     {% endfor %}
     
-    <h2>Pending Staff Approvals</h2>
-
-    {% for staff in pending_staff %}
-        <p>
-            {{ staff.name }} — {{ staff.email }}
-        </p>
-
-        <form method="POST"
-            action="{{ url_for('approve_staff', staff_id=staff.id) }}">
-            <button type="submit">Approve</button>
-        </form>
-    {% else %}
-        <p> No Pending Staff Approvals</p>
-    {% endfor %}
 </body>
 </html>
