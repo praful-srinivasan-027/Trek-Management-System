@@ -28,11 +28,26 @@
             >
                 <button type="submit">Delete</button>
             </form>
+            <a href="{{ url_for('assign_staff', trek_id=trek.id) }}">Assign Staff</a>
         </div>
         <hr>
     {% else %}
         <p>No treks have been created yet.</p>
     {% endfor %}
+    
+    <h2>Pending Staff Approvals</h2>
 
+    {% for staff in pending_staff %}
+        <p>
+            {{ staff.name }} — {{ staff.email }}
+        </p>
+
+        <form method="POST"
+            action="{{ url_for('approve_staff', staff_id=staff.id) }}">
+            <button type="submit">Approve</button>
+        </form>
+    {% else %}
+        <p> No Pending Staff Approvals</p>
+    {% endfor %}
 </body>
 </html>

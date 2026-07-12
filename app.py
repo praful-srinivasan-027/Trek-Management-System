@@ -4,7 +4,7 @@ from extentions import db, login_manager
 # import models 
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from models import User, Trek
+from models import User, Trek, TrekAssignment, Booking
 
 app = Flask(__name__)
 
@@ -54,10 +54,16 @@ def admin_dashboard():
         return "Access denied", 403
 
     treks = Trek.query.all()
+    pending_staff = User.query.filter_by(
+        role="staff",
+        is_approved=False,
+        is_blacklisted=False
+    ).all()
 
     return render_template(
         "admin_dashboard.html",
-        treks=treks
+        treks=treks,
+        pending_staff=pending_staff
     )
 
 @app.route("/staff/dashboard")
@@ -66,7 +72,14 @@ def staff_dashboard():
     if current_user.role != "staff":
         return "Access denied", 403
 
-    return f"Staff Dashboard - Welcome {current_user.name}"
+    assignments = TrekAssignment.query.filter_by(
+        staff_id=current_user.id
+    ).all()
+
+    return render_template(
+        "staff_dashboard.html",
+        assignments=assignments
+    )
 
 
 @app.route("/user/dashboard")
@@ -75,7 +88,28 @@ def user_dashboard():
     if current_user.role != "user":
         return "Access denied", 403
 
-    return f"User Dashboard - Welcome {current_user.name}"
+    location = request.args.get("location")
+    difficulty = request.args.get("difficulty")
+
+    query = Trek.query.filter_by(status="Open")
+
+    if location:
+        query = query.filter(Trek.location.ilike(f"%{location}%"))
+
+    if difficulty:
+        query = query.filter_by(difficulty=difficulty)
+
+    open_treks = query.all()
+
+    bookings = Booking.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    return render_template(
+        "user_dashboard.html",
+        open_treks=open_treks,
+        bookings=bookings
+    )
 
 @app.route("/register", methods=["GET","POST"])
 def register():
@@ -204,6 +238,151 @@ def delete_trek(trek_id):
     db.session.commit()
 
     return redirect(url_for("admin_dashboard"))
+
+@app.route("/admin/trek/<int:trek_id>/assign", methods=["GET","POST"])
+@login_required
+def assign_staff(trek_id):
+    if current_user.role!="admin":
+        return "Access Denied", 403
+    
+    trek = db.get_or_404(Trek, trek_id)
+    approved_staff = User.query.filter_by(
+        role="staff",
+        is_approved=True,
+        is_blacklisted=False
+    ).all()
+
+    if request.method=="POST":
+        staff_id = int(request.form.get("staff_id"))
+
+        staff = db.session.get(User, staff_id)
+
+        if (
+            staff is None
+            or staff.role != "staff"
+            or not staff.is_approved
+            or staff.is_blacklisted
+        ):
+            return "Invalid staff member", 400
+        
+        existing_assignment = TrekAssignment.query.filter_by(
+            trek_id=trek.id,
+            staff_id=staff.id
+        ).first()
+
+        if existing_assignment:
+            return f"Staff is already assigned to this Trek", 400
+        
+        assignment = TrekAssignment(
+            trek_id=trek_id,
+            staff_id=staff_id
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return redirect(url_for("admin_dashboard"))
+    return render_template("assign_staff.html", trek=trek, approved_staff=approved_staff)
+
+@app.route("/admin/staff/<int:staff_id>/approve", methods=["POST"])
+@login_required
+def approve_staff(staff_id):
+    if current_user.role != "admin":
+        return "Access denied", 403
+
+    staff = db.get_or_404(User, staff_id)
+
+    if staff.role != "staff":
+        return "This user is not a staff member", 400
+
+    staff.is_approved = True
+    db.session.commit()
+
+    return redirect(url_for("admin_dashboard"))
+
+@app.route("/staff/treks/<int:trek_id>/update", methods=["GET", "POST"])
+@login_required
+def update_assigned_trek(trek_id):
+    if current_user.role != "staff":
+        return "Access denied", 403
+
+    assignment = TrekAssignment.query.filter_by(
+        trek_id=trek_id,
+        staff_id=current_user.id
+    ).first()
+
+    if assignment is None:
+        return "You are not assigned to this trek", 403
+
+    trek = db.get_or_404(Trek, trek_id)
+
+    if request.method == "POST":
+        trek.available_slots = int(request.form.get("available_slots"))
+        trek.status = request.form.get("status")
+
+        db.session.commit()
+
+        return redirect(url_for("staff_dashboard"))
+
+    return render_template("update_assigned_trek.html", trek=trek)
+
+@app.route("/user/treks/<int:trek_id>/book", methods=["POST"])
+@login_required
+def book_trek(trek_id):
+    if current_user.role != "user":
+        return "Access denied", 403
+
+    trek = db.get_or_404(Trek, trek_id)
+
+    if trek.status != "Open":
+        return "This trek is not open for booking", 400
+
+    if trek.available_slots <= 0:
+        return "No slots available", 400
+
+    existing_booking = Booking.query.filter_by(
+        user_id=current_user.id,
+        trek_id=trek.id,
+        status="Booked"
+    ).first()
+
+    if existing_booking:
+        return "You have already booked this trek", 400
+
+    booking = Booking(
+        user_id=current_user.id,
+        trek_id=trek.id,
+        status="Booked"
+    )
+
+    trek.available_slots -= 1
+
+    db.session.add(booking)
+    db.session.commit()
+
+    return redirect(url_for("user_dashboard"))
+
+@app.route("/user/bookings/<int:booking_id>/cancel", methods=["POST"])
+@login_required
+def cancel_booking(booking_id):
+    if current_user.role != "user":
+        return "Access denied", 403
+
+    booking = db.get_or_404(Booking, booking_id)
+
+    # A user can cancel only their own booking
+    if booking.user_id != current_user.id:
+        return "Access denied", 403
+
+    if booking.status != "Booked":
+        return "This booking cannot be cancelled", 400
+
+    booking.status = "Cancelled"
+    booking.trek.available_slots += 1
+
+    db.session.commit()
+
+    return redirect(url_for("user_dashboard"))
 
 if __name__ == "__main__":
     app.run(debug=True)

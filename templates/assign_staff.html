@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Staff</title>
+</head>
+<body>
+
+    <h1>Assign Staff to {{ trek.name }}</h1>
+
+    <form method="POST">
+        <label for="staff_id">Select Staff:</label>
+
+        <select id="staff_id" name="staff_id" required>
+            {% for staff in approved_staff %}
+                <option value="{{ staff.id }}">
+                    {{ staff.name }} — {{ staff.email }}
+                </option>
+            {% else %}
+                <option disabled>No approved staff available</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Assign Staff</button>
+    </form>
+
+    <br>
+
+    <a href="{{ url_for('admin_dashboard') }}">
+        Back to Admin Dashboard
+    </a>
+
+</body>
+</html>

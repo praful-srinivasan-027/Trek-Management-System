@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard</title>
+</head>
+<body>
+
+    <h1>Staff Dashboard</h1>
+    <p>Welcome, {{ current_user.name }}</p>
+
+    <h2>Assigned Treks</h2>
+
+    {% for assignment in assignments %}
+        <h3>{{ assignment.trek.name }}</h3>
+        <p>Location: {{ assignment.trek.location }}</p>
+        <p>Status: {{ assignment.trek.status }}</p>
+        <p>Available Slots: {{ assignment.trek.available_slots }}</p>
+        <a href="{{ url_for('update_assigned_trek', trek_id=assignment.trek.id) }}">
+            Update Trek
+        </a>
+        <hr>
+    {% else %}
+        <p>No treks have been assigned to you.</p>
+    {% endfor %}
+
+    <a href="{{ url_for('logout') }}">Logout</a>
+
+</body>
+</html>

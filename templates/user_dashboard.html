@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+</head>
+<body>
+
+    <h1>User Dashboard</h1>
+    <p>Welcome, {{ current_user.name }}</p>
+
+    <a href="{{ url_for('logout') }}">Logout</a>
+
+    <hr>
+
+        <form method="GET">
+        <label for="location">Location:</label>
+        <input
+            type="text"
+            id="location"
+            name="location"
+            value="{{ request.args.get('location', '') }}"
+        >
+
+        <label for="difficulty">Difficulty:</label>
+        <select id="difficulty" name="difficulty">
+            <option value="">All</option>
+            <option value="Easy">Easy</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Hard">Hard</option>
+        </select>
+
+        <button type="submit">Search</button>
+    </form>
+    
+    <h2>Available Treks</h2>
+
+    {% for trek in open_treks %}
+        <div>
+            <h3>{{ trek.name }}</h3>
+            <p>Location: {{ trek.location }}</p>
+            <p>Difficulty: {{ trek.difficulty }}</p>
+            <p>Duration: {{ trek.duration }} days</p>
+            <p>Available Slots: {{ trek.available_slots }}</p>
+            <p>Start Date: {{ trek.start_date }}</p>
+            <p>End Date: {{ trek.end_date }}</p>
+
+            <form
+                method="POST"
+                action="{{ url_for('book_trek', trek_id=trek.id) }}"
+            >
+                <button type="submit">Book Trek</button>
+            </form>
+        </div>
+
+        <hr>
+    {% else %}
+        <p>No open treks are currently available.</p>
+    {% endfor %}
+
+
+    <h2>My Bookings</h2>
+
+    {% for booking in bookings %}
+        <div>
+            <h3>{{ booking.trek.name }}</h3>
+            <p>Location: {{ booking.trek.location }}</p>
+            <p>Booking Date: {{ booking.booking_date }}</p>
+            <p>Status: {{ booking.status }}</p>
+        </div>
+        {% if booking.status == "Booked" %}
+            <form
+                method="POST"
+                action="{{ url_for('cancel_booking', booking_id=booking.id) }}"
+            >
+                <button type="submit">Cancel Booking</button>
+            </form>
+        {% endif %}
+        <hr>
+    {% else %}
+        <p>You have not booked any treks yet.</p>
+    {% endfor %}
+
+</body>
+</html>
