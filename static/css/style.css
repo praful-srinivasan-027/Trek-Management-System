@@ -1,0 +1,46 @@
+body {
+    background-color: #f4f6f9;
+    color: #212529;
+}
+
+.navbar {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+.btn {
+    border-radius: 7px;
+}
+
+.form-control,
+.form-select {
+    border-radius: 7px;
+}
+
+.table {
+    vertical-align: middle;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-weight: 600;
+}
+body {
+    background-color: red !important;
+}

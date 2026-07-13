@@ -200,7 +200,7 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
-    logout_user
+    logout_user()
     return redirect(url_for("login"))
 
 @app.route("/admin/treks/create", methods=["GET", "POST"])
