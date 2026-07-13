@@ -1,41 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Edit Profile</h1>
+{% block title %}Edit Profile{% endblock %}
 
-    <form method="POST">
-        <label for="name">Name:</label>
-        <input
-            type="text"
-            id="name"
-            name="name"
-            value="{{ current_user.name }}"
-            required
-        >
+{% block content %}
 
-        <br><br>
+<div class="row justify-content-center">
+    <div class="col-md-6">
 
-        <label for="email">Email:</label>
-        <input
-            type="email"
-            id="email"
-            name="email"
-            value="{{ current_user.email }}"
-            required
-        >
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
 
-        <br><br>
+                <h2 class="mb-4">Edit Profile</h2>
 
-        <button type="submit">Save Changes</button>
-    </form>
+                <form method="POST">
 
-    <a href="{{ url_for('user_dashboard') }}">Back to Dashboard</a>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
 
-</body>
-</html>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            class="form-control"
+                            value="{{ current_user.name }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-control"
+                            value="{{ current_user.email }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Save Changes
+                        </button>
+
+                        <a
+                            href="{{ url_for('user_dashboard') }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

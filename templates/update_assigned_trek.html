@@ -1,47 +1,77 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Trek</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Update {{ trek.name }}</h1>
+{% block title %}Update Trek{% endblock %}
 
-    <form method="POST">
-        <label for="available_slots">Available Slots:</label>
-        <input
-            type="number"
-            id="available_slots"
-            name="available_slots"
-            value="{{ trek.available_slots }}"
-            min="0"
-            required
-        >
+{% block content %}
 
-        <br><br>
+<div class="row justify-content-center">
+    <div class="col-md-6">
 
-        <label for="status">Status:</label>
-        <select id="status" name="status" required>
-            {% for status in ["Open", "Closed", "Completed"] %}
-                <option
-                    value="{{ status }}"
-                    {% if trek.status == status %}selected{% endif %}
-                >
-                    {{ status }}
-                </option>
-            {% endfor %}
-        </select>
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
 
-        <br><br>
+                <h2 class="mb-2">Update Trek</h2>
+                <p class="text-muted mb-4">{{ trek.name }}</p>
 
-        <button type="submit">Update Trek</button>
-    </form>
+                <form method="POST">
 
-    <br>
+                    <div class="mb-3">
+                        <label for="available_slots" class="form-label">
+                            Available Slots
+                        </label>
 
-    <a href="{{ url_for('staff_dashboard') }}">Back to Dashboard</a>
+                        <input
+                            type="number"
+                            id="available_slots"
+                            name="available_slots"
+                            class="form-control"
+                            value="{{ trek.available_slots }}"
+                            min="0"
+                            required
+                        >
+                    </div>
 
-</body>
-</html>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">
+                            Status
+                        </label>
+
+                        <select
+                            id="status"
+                            name="status"
+                            class="form-select"
+                            required
+                        >
+                            {% for status in ["Open", "Closed", "Completed"] %}
+                                <option
+                                    value="{{ status }}"
+                                    {% if trek.status == status %}selected{% endif %}
+                                >
+                                    {{ status }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Update Trek
+                        </button>
+
+                        <a
+                            href="{{ url_for('staff_dashboard') }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

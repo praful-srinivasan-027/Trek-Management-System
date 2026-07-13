@@ -1,87 +1,186 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>User Dashboard</h1>
-    <p>Welcome, {{ current_user.name }}</p>
+{% block title %}User Dashboard{% endblock %}
 
-    <a href="{{ url_for('logout') }}">Logout</a>
-    <a href="{{ url_for('edit_profile') }}">Edit Profile</a>
-    
-    <hr>
+{% block content %}
 
-        <form method="GET">
-        <label for="location">Location:</label>
-        <input
-            type="text"
-            id="location"
-            name="location"
-            value="{{ request.args.get('location', '') }}"
-        >
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Welcome, {{ current_user.name }}</h1>
+        <p class="text-muted mb-0">Discover and manage your treks.</p>
+    </div>
 
-        <label for="difficulty">Difficulty:</label>
-        <select id="difficulty" name="difficulty">
-            <option value="">All</option>
-            <option value="Easy">Easy</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Hard">Hard</option>
-        </select>
+    <a href="{{ url_for('edit_profile') }}"
+       class="btn btn-outline-primary">
+        Edit Profile
+    </a>
+</div>
 
-        <button type="submit">Search</button>
-    </form>
 
-    <h2>Available Treks</h2>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h5 class="card-title mb-3">Find a Trek</h5>
+
+        <form method="GET" class="row g-3">
+
+            <div class="col-md-5">
+                <input
+                    type="text"
+                    class="form-control"
+                    name="location"
+                    placeholder="Search by location"
+                    value="{{ request.args.get('location', '') }}"
+                >
+            </div>
+
+            <div class="col-md-4">
+                <select class="form-select" name="difficulty">
+                    <option value="">All Difficulties</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" type="submit">
+                    Search
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+
+<h2 class="mb-3">Available Treks</h2>
+
+<div class="row g-3 mb-5">
 
     {% for trek in open_treks %}
-        <div>
-            <h3>{{ trek.name }}</h3>
-            <p>Location: {{ trek.location }}</p>
-            <p>Difficulty: {{ trek.difficulty }}</p>
-            <p>Duration: {{ trek.duration }} days</p>
-            <p>Available Slots: {{ trek.available_slots }}</p>
-            <p>Start Date: {{ trek.start_date }}</p>
-            <p>End Date: {{ trek.end_date }}</p>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
 
-            <form
-                method="POST"
-                action="{{ url_for('book_trek', trek_id=trek.id) }}"
-            >
-                <button type="submit">Book Trek</button>
-            </form>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h4>{{ trek.name }}</h4>
+
+                        <span class="badge bg-success">
+                            {{ trek.difficulty }}
+                        </span>
+                    </div>
+
+                    <p class="text-muted">{{ trek.location }}</p>
+
+                    <p class="mb-1">
+                        <strong>Duration:</strong>
+                        {{ trek.duration }} days
+                    </p>
+
+                    <p class="mb-1">
+                        <strong>Available Slots:</strong>
+                        {{ trek.available_slots }}
+                    </p>
+
+                    <p class="mb-1">
+                        <strong>Start:</strong>
+                        {{ trek.start_date }}
+                    </p>
+
+                    <p>
+                        <strong>End:</strong>
+                        {{ trek.end_date }}
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('book_trek', trek_id=trek.id) }}"
+                    >
+                        <button class="btn btn-primary" type="submit">
+                            Book Trek
+                        </button>
+                    </form>
+
+                </div>
+            </div>
         </div>
 
-        <hr>
     {% else %}
-        <p>No open treks are currently available.</p>
+        <p class="text-muted">No open treks are currently available.</p>
     {% endfor %}
 
+</div>
 
-    <h2>My Bookings</h2>
 
-    {% for booking in bookings %}
-        <div>
-            <h3>{{ booking.trek.name }}</h3>
-            <p>Location: {{ booking.trek.location }}</p>
-            <p>Booking Date: {{ booking.booking_date }}</p>
-            <p>Status: {{ booking.status }}</p>
-        </div>
-        {% if booking.status == "Booked" %}
-            <form
-                method="POST"
-                action="{{ url_for('cancel_booking', booking_id=booking.id) }}"
-            >
-                <button type="submit">Cancel Booking</button>
-            </form>
-        {% endif %}
-        <hr>
-    {% else %}
-        <p>You have not booked any treks yet.</p>
-    {% endfor %}
+<h2 class="mb-3">My Bookings</h2>
 
-</body>
-</html>
+<div class="table-responsive">
+    <table class="table table-bordered table-hover bg-white">
+
+        <thead class="table-dark">
+            <tr>
+                <th>Trek</th>
+                <th>Location</th>
+                <th>Booking Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for booking in bookings %}
+                <tr>
+                    <td>{{ booking.trek.name }}</td>
+                    <td>{{ booking.trek.location }}</td>
+                    <td>{{ booking.booking_date }}</td>
+
+                    <td>
+                        {% if booking.status == "Booked" %}
+                            <span class="badge bg-primary">Booked</span>
+                        {% elif booking.status == "Completed" %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                {{ booking.status }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if booking.status == "Booked" %}
+                            <form
+                                method="POST"
+                                action="{{ url_for(
+                                    'cancel_booking',
+                                    booking_id=booking.id
+                                ) }}"
+                            >
+                                <button
+                                    class="btn btn-outline-danger btn-sm"
+                                    type="submit"
+                                >
+                                    Cancel
+                                </button>
+                            </form>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                </tr>
+
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">
+                        You have not booked any treks yet.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+</div>
+
+{% endblock %}

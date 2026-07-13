@@ -9,6 +9,7 @@ from models import User, Trek, TrekAssignment, Booking
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///trekking.db"
+#TODO: Where is this secret key used? 
 app.config["SECRET_KEY"]="dev"
 
 db.init_app(app)
